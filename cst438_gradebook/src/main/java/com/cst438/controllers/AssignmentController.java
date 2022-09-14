@@ -10,9 +10,12 @@ import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+
 import com.cst438.domain.*;
+import com.cst438.domain.AssignmentListDTO.AssignmentDTO;
 
 @RestController
 public class AssignmentController {
@@ -21,51 +24,75 @@ public class AssignmentController {
 	AssignmentRepository assignmentRepository;
 	
 	@Autowired
-	AssignmentGradeRepository assignmentGradeRepository;
-	
-	@Autowired
 	CourseRepository courseRepository;
+//	
+//	@GetMapping("/assignment/{id}")
+//	public Assignment getAssignments(@PathVariable("id") Integer assignmentId) {
+//		
+//		String email = "dwisneski@csumb.edu"; // user name being instructor email
+//		Assignment assignment = checkAssignment(assignmentId, email);
+//		Assignment result = new Assignment();
+//		
+//		result.setId(assignment.getId());
+//		result.setName(assignment.getName());
+//		result.setDueDate(assignment.getDueDate());
+//		result.setNeedsGrading(assignment.getNeedsGrading());
+//		
+//		return result;
+//	}
 	
-	@GetMapping("/assignment/{id}")
-	public Assignment getAssignments(@PathVariable("id") Integer assignmentId) {
+	@PostMapping("/assignment")
+	public AssignmentListDTO.AssignmentDTO addAssignment(@RequestBody AssignmentListDTO.AssignmentDTO assignmentDTO) {
 		
-		String email = "dwisneski@csumb.edu"; // user name being instructor email
-		Assignment assignment = checkAssignment(assignmentId, email);
-		Assignment result = new Assignment();
+		// lookup the course
+		Course c = courseRepository.findById(assignmentDTO.courseId).get();
+		if (c == null) {
+			//invalid assignment error
+			throw new ResponseStatusException( HttpStatus.BAD_REQUEST, "Course not found. " + assignmentDTO.courseId);
+		}
 		
-		result.setId(assignment.getId());
-		result.setName(assignment.getName());
-		result.setDueDate(assignment.getDueDate());
-		result.setNeedsGrading(assignment.getNeedsGrading());
+		// create a new assignment entity
+		Assignment assignment = new Assignment();
 		
-		return result;
+		// copy data from assignmentDTO to assignment
+		assignment.setName(assignmentDTO.assignmentName);
+		
+		//TODO convert duDate String to dueDate java.sql.Date
+		//assignment.setDueDate(assignmentDTO.dueDate);
+		
+		assignment.setCourse(c);
+		
+		// save the assignment entity, save returns an update assignment etity with assignment id primary key
+		Assignment newAssignment = assignmentRepository.save(assignment);
+		
+		assignmentDTO.assignmentId = newAssignment.getId();
+		
+		// return assignmentDTO that now contains the primary key
+		return assignmentDTO;
 	}
 	
-	@PostMapping("/assignment/new")
-	public void createAssignment() {
-		String email = "dwisneski@csumb.edu";
-		
+	@PutMapping("/assignment/{id}")
+	public void updateAssignment(@RequestBody AssignmentListDTO assignmentDTO) {
 		
 	}
 	
-	@DeleteMapping("/assignment/{id}")
+	@DeleteMapping("/assignment/delete={id}")
 	@Transactional
 	public void deleteAssignment(@PathVariable("id") Integer assignmentId) {
-		String email = "dwisneski@csumb.edu";
-		Assignment assignment = checkAssignment(assignmentId, email);
+		assignmentRepository.deleteById(assignmentId);
 	}
 	
-	private Assignment checkAssignment(int assignmentId, String email) {
-		//get assignment
-		Assignment assignment = assignmentRepository.findById(assignmentId).orElse(null);
-		if (assignment == null) {
-			throw new ResponseStatusException( HttpStatus.BAD_REQUEST, "Assignment not found. " + assignmentId);
-		}
-		//check that user is the instructor
-		if (!assignment.getCourse().getInstructor().equals(email)) {
-			throw new ResponseStatusException( HttpStatus.UNAUTHORIZED, "Not Authorized.");
-		}
-		
-		return assignment;
-	}
+//	private Assignment checkAssignment(int assignmentId, String email) {
+//		//get assignment
+//		Assignment assignment = assignmentRepository.findById(assignmentId).orElse(null);
+//		if (assignment == null) {
+//			throw new ResponseStatusException( HttpStatus.BAD_REQUEST, "Assignment not found. " + assignmentId);
+//		}
+//		//check that user is the instructor
+//		if (!assignment.getCourse().getInstructor().equals(email)) {
+//			throw new ResponseStatusException( HttpStatus.UNAUTHORIZED, "Not Authorized.");
+//		}
+//		
+//		return assignment;
+//	}
 }
