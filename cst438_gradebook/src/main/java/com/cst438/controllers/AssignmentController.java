@@ -1,5 +1,7 @@
 package com.cst438.controllers;
 
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.*;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,25 +27,21 @@ public class AssignmentController {
 	
 	@Autowired
 	CourseRepository courseRepository;
-//	
-//	@GetMapping("/assignment/{id}")
-//	public Assignment getAssignments(@PathVariable("id") Integer assignmentId) {
-//		
-//		String email = "dwisneski@csumb.edu"; // user name being instructor email
-//		Assignment assignment = checkAssignment(assignmentId, email);
-//		Assignment result = new Assignment();
-//		
-//		result.setId(assignment.getId());
-//		result.setName(assignment.getName());
-//		result.setDueDate(assignment.getDueDate());
-//		result.setNeedsGrading(assignment.getNeedsGrading());
-//		
-//		return result;
-//	}
+	
+	@GetMapping("/assignment/{id}")
+	public AssignmentListDTO.AssignmentDTO getAssignments(@PathVariable("id") Integer assignmentId) {
+		
+		Assignment assignment = checkAssignment(assignmentId);
+		AssignmentListDTO.AssignmentDTO result = new AssignmentListDTO.AssignmentDTO();
+
+		//copy from assignment to result
+		result.assignmentId = assignment.getId();
+		
+		return result;
+	}
 	
 	@PostMapping("/assignment")
-	public AssignmentListDTO.AssignmentDTO addAssignment(@RequestBody AssignmentListDTO.AssignmentDTO assignmentDTO) {
-		
+	public AssignmentListDTO.AssignmentDTO addAssignment(@RequestBody AssignmentListDTO.AssignmentDTO assignmentDTO) {		
 		// lookup the course
 		Course c = courseRepository.findById(assignmentDTO.courseId).get();
 		if (c == null) {
@@ -58,11 +56,11 @@ public class AssignmentController {
 		assignment.setName(assignmentDTO.assignmentName);
 		
 		//TODO convert duDate String to dueDate java.sql.Date
-		//assignment.setDueDate(assignmentDTO.dueDate);
+		//assignment.setDueDate( Date.valueOf(assignmentDTO.dueDate));
 		
 		assignment.setCourse(c);
 		
-		// save the assignment entity, save returns an update assignment etity with assignment id primary key
+		// save the assignment entity, save returns an update assignment entity with assignment id primary key
 		Assignment newAssignment = assignmentRepository.save(assignment);
 		
 		assignmentDTO.assignmentId = newAssignment.getId();
@@ -72,27 +70,41 @@ public class AssignmentController {
 	}
 	
 	@PutMapping("/assignment/{id}")
-	public void updateAssignment(@RequestBody AssignmentListDTO assignmentDTO) {
+	@Transactional
+	public void updateAssignment(@PathVariable("id") Integer assignmentId, 
+			@RequestBody AssignmentListDTO.AssignmentDTO assignmentDTO) {
 		
+		Course c = courseRepository.findById(assignmentDTO.courseId).get();
+		
+		Optional<Assignment> assignment = assignmentRepository.findById(assignmentId);
+		if (assignment == null) {
+			//assignment doesn't exist
+			throw new ResponseStatusException( HttpStatus.BAD_REQUEST, "Assignment not foudn. " + assignmentId);
+		}
+		
+		Assignment updateAssignment = new Assignment();
+		updateAssignment.setName(assignmentDTO.assignmentName);
+		updateAssignment.setCourse(c);
+		
+		assignmentRepository.save(updateAssignment);
 	}
 	
-	@DeleteMapping("/assignment/delete={id}")
+	@DeleteMapping("/delete/{id}")
 	@Transactional
 	public void deleteAssignment(@PathVariable("id") Integer assignmentId) {
-		assignmentRepository.deleteById(assignmentId);
+		Assignment a = checkAssignment(assignmentId);
+		// find the assignment and remove it
+		
+		assignmentRepository.delete(a);
 	}
 	
-//	private Assignment checkAssignment(int assignmentId, String email) {
-//		//get assignment
-//		Assignment assignment = assignmentRepository.findById(assignmentId).orElse(null);
-//		if (assignment == null) {
-//			throw new ResponseStatusException( HttpStatus.BAD_REQUEST, "Assignment not found. " + assignmentId);
-//		}
-//		//check that user is the instructor
-//		if (!assignment.getCourse().getInstructor().equals(email)) {
-//			throw new ResponseStatusException( HttpStatus.UNAUTHORIZED, "Not Authorized.");
-//		}
-//		
-//		return assignment;
-//	}
+	private Assignment checkAssignment(int assignmentId) {
+		//get assignment
+		Assignment assignment = assignmentRepository.findById(assignmentId).orElse(null);
+		if (assignment == null) {
+			throw new ResponseStatusException( HttpStatus.BAD_REQUEST, "Assignment not found. " + assignmentId);
+		}
+		
+		return assignment;
+	}
 }
