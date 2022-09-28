@@ -21,10 +21,6 @@ public class RegistrationServiceREST extends RegistrationService {
 	public void sendFinalGrades(int course_id , CourseDTOG courseDTO) { 
 		
 		//TODO  complete this method in homework 4
-		System.out.println("Sending final grades " + course_id + " " + courseDTO);
 		
-		//send put to http://localhost:8080
-		restTemplate.put(registration_url + "/course/" + course_id, courseDTO);
-		System.out.println("After sending final grades");
 	}
 }
