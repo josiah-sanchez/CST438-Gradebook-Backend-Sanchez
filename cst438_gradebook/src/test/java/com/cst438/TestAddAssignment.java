@@ -7,7 +7,6 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
-import java.sql.Date;
 import java.util.Optional;
 
 import org.junit.jupiter.api.Test;
@@ -32,7 +31,6 @@ import com.cst438.domain.Course;
 import com.cst438.domain.CourseRepository;
 import com.cst438.domain.Enrollment;
 import com.cst438.domain.GradebookDTO;
-import com.cst438.domain.AssignmentListDTO.AssignmentDTO;
 import com.cst438.services.RegistrationService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -51,89 +49,54 @@ public class TestAddAssignment {
 	
 	static final String URL = "http://localhost:8080";
 	public static final int TEST_COURSE_ID = 40442;
-	public static final String TEST_INSTRUCTOR_EMAIL = "test@test.edu";
 
 	@Test
 	public void addAssignment() throws Exception {
-		MockHttpServletResponse response;
-		
-		Course c = new Course();
-		c.setCourse_id(TEST_COURSE_ID);
-		c.setInstructor(TEST_INSTRUCTOR_EMAIL);
 
+		MockHttpServletResponse response;
+
+		// mock database data
+
+		Course course = new Course();
+		course.setCourse_id(TEST_COURSE_ID);
+
+		// given -- stubs for database repositories that return test data
+		given(courseRepository.findById(TEST_COURSE_ID)).willReturn(Optional.of(course));
+		// end of mock data
+		
+		// set up a mock for the assignment repository save method that returns an Assignment entity with a primary key
 		Assignment a = new Assignment();
 		a.setId(123);
-		a.setCourse(c);
-		a.setName("test assignment");
-		a.setDueDate(Date.valueOf("2022-09-01"));
 		
-		given(courseRepository.findById(TEST_COURSE_ID)).willReturn(Optional.of(c));
 		given(assignmentRepository.save(any())).willReturn(a);
+
+		// then do an http get request for assignment 1
+		AssignmentListDTO.AssignmentDTO aDTO = new AssignmentListDTO.AssignmentDTO();
+		//setting values for name,courseId, dueDate
+		aDTO.assignmentName = "test assignment";
+		aDTO.courseId = TEST_COURSE_ID;
+		aDTO.dueDate = "2022-09-12";
 		
-		AssignmentDTO adto = new AssignmentDTO();
-		adto.assignmentName = "test assignment";
-		adto.dueDate = "2022-09-01";
-		adto.courseId = TEST_COURSE_ID;
-		
-		response = mvc.perform(
-	                MockMvcRequestBuilders
-	                  .post("/assignment")
-	                  .content(asJsonString(adto))
-	                  .contentType(MediaType.APPLICATION_JSON)
-	                  .accept(MediaType.APPLICATION_JSON))
-	                .andReturn().getResponse();
-		
+		// make the post call to add the assignment
+		response = mvc.perform(MockMvcRequestBuilders.post("/assignment")
+				.accept(MediaType.APPLICATION_JSON)
+				.content(asJsonString(aDTO))
+				.contentType(MediaType.APPLICATION_JSON))
+				.andReturn().getResponse();
+				
+
+		// verify return data
 		assertEquals(200, response.getStatus());
 		
-		AssignmentDTO result = fromJsonString(response.getContentAsString(), AssignmentDTO.class);
+		// get response body and convert to Java object
+		AssignmentListDTO.AssignmentDTO returnedDTO = fromJsonString(response.getContentAsString(), AssignmentListDTO.AssignmentDTO.class);
 		
-		assertNotEquals(0, result.assignmentId);
+		// check that returned assignmentID is not 0
+		assertEquals(123, returnedDTO.assignmentId);
+
+		// verify that a save was called on repository
+		verify(assignmentRepository, times(1)).save(any()); // verify that assignment Controller actually did a save to the database
 		
-		verify(assignmentRepository, times(1)).save(any());
-		
-//		MockHttpServletResponse response;
-//
-//		// mock database data
-//
-//		Course course = new Course();
-//		course.setCourse_id(TEST_COURSE_ID);
-//
-//		// given -- stubs for database repositories that return test data
-//		given(courseRepository.findById(TEST_COURSE_ID)).willReturn(Optional.of(course));
-//		// end of mock data
-//		
-//		// set up a mock for the assignment repository save method that returns an Assignment entity with a primary key
-//		Assignment a = new Assignment();
-//		a.setId(123);
-//		
-//		given(assignmentRepository.save(any())).willReturn(a);
-//
-//		// then do an http get request for assignment 1
-//		AssignmentListDTO.AssignmentDTO aDTO = new AssignmentListDTO.AssignmentDTO();
-//		//setting values for name,courseId, dueDate
-//		aDTO.assignmentName = "test assignment";
-//		aDTO.courseId = TEST_COURSE_ID;
-//		
-//		// make the post call to add the assignment
-//		response = mvc.perform(MockMvcRequestBuilders.post("/assignment")
-//				.accept(MediaType.APPLICATION_JSON)
-//				.content(asJsonString(aDTO))
-//				.contentType(MediaType.APPLICATION_JSON))
-//				.andReturn().getResponse();
-//				
-//
-//		// verify return data
-//		assertEquals(200, response.getStatus());
-//		
-//		// get response body and convert to Java object
-//		AssignmentListDTO.AssignmentDTO returnedDTO = fromJsonString(response.getContentAsString(), AssignmentListDTO.AssignmentDTO.class);
-//		
-//		// check that returned assignmentID is not 0
-//		assertEquals(123, returnedDTO.assignmentId);
-//
-//		// verify that a save was called on repository
-//		verify(assignmentRepository, times(1)).save(any()); // verify that assignment Controller actually did a save to the database
-//		
 
 
 	}
