@@ -61,11 +61,6 @@ public class EndToEndCreateNewAssignmentTest {
 		courseRepository.save(c);
 		
 		Assignment a = new Assignment();
-		a.setName(TEST_ASSIGNMENT_NAME);
-		a.setDueDate(Date.valueOf(TEST_DUE_DATE));
-		a.setCourse(c);
-		
-		a = assignmentRepository.save(a);
 		
 		//set and start selenium driver
 		System.setProperty("webdriver.chrome.driver", CHROME_DRIVER_FILE_LOCATION);
@@ -104,7 +99,7 @@ public class EndToEndCreateNewAssignmentTest {
 			Thread.sleep(SLEEP_DURATION);
 			
 			// verify correct message
-			we = driver.findElement(By.xpath("//[@Class='toast-message']"));
+			we = driver.findElement(By.id("toast"));
 			String toast = we.getText();
 			assertEquals("Assignment successfully added!", toast);
 			
@@ -115,7 +110,6 @@ public class EndToEndCreateNewAssignmentTest {
 		}
 		
 		courseRepository.delete(c);
-		assignmentRepository.delete(a);
 		
 		driver.quit();
 	}
