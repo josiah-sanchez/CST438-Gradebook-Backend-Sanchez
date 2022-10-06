@@ -61,6 +61,12 @@ public class EndToEndCreateNewAssignmentTest {
 		courseRepository.save(c);
 		
 		Assignment a = new Assignment();
+		a.setName(TEST_ASSIGNMENT_NAME);
+		a.setDueDate(Date.valueOf(TEST_DUE_DATE));
+		a.setCourse(c);
+		a.setNeedsGrading(0);
+		
+		a = assignmentRepository.save(a);
 		
 		//set and start selenium driver
 		System.setProperty("webdriver.chrome.driver", CHROME_DRIVER_FILE_LOCATION);
@@ -99,8 +105,9 @@ public class EndToEndCreateNewAssignmentTest {
 			Thread.sleep(SLEEP_DURATION);
 			
 			// verify correct message
-			we = driver.findElement(By.id("toast"));
+			we = driver.findElement(By.className("Toastify"));
 			String toast = we.getText();
+			System.out.println(toast);
 			assertEquals("Assignment successfully added!", toast);
 			
 			
@@ -108,8 +115,10 @@ public class EndToEndCreateNewAssignmentTest {
 			e.printStackTrace();
 			throw e;
 		}
-		
-		courseRepository.delete(c);
+
+		assignmentRepository.deleteById(a.getId()+1);
+		assignmentRepository.deleteById(a.getId());
+		courseRepository.deleteById(TEST_COURSE_ID);
 		
 		driver.quit();
 	}
